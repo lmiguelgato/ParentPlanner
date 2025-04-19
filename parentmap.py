@@ -1,6 +1,7 @@
 import re
 import requests
 from bs4 import BeautifulSoup
+from tinydb import TinyDB, Query
 
 def extract_metadata(raw_html, title, link):
     # Parse HTML for metadata extraction
@@ -125,6 +126,7 @@ else:
         if event["date"] and event["cost"] and event["location"]
     ]
 
+    """
     # Preview result
     for i, e in enumerate(filtered_events, 1):
         print(f"\n--- Event #{i} ---")
@@ -134,3 +136,29 @@ else:
         print("Location:", e["location"])
         print("Link:", e["link"])
         print("Description:", e["description"])
+    """
+
+db = TinyDB('events.json')
+Event = Query()
+
+if filtered_events:
+    print(f"\n✅ Found {len(filtered_events)} events.")
+
+    for event in filtered_events:
+        # Check if event already exists based on title and date
+        if not db.contains((Event.title == event['title']) & (Event.date == event['date'])):
+            db.insert(event)
+        else:
+            continue  # Skip if event already exists
+else:
+    print("⚠️ No valid events found.")
+
+# Example query: upcoming free events
+free_events = db.search(
+    (Event.cost.test(lambda c: 'free' == c.lower()))
+)
+
+print(f"✅ Found {len(free_events)} free events:")
+
+for i, event in enumerate(free_events, 1):
+    print(f"{i}. {event['title']}")

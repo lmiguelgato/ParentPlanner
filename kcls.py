@@ -1,6 +1,7 @@
 import asyncio
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
+from tinydb import TinyDB, Query
 
 async def scrape_kcls_events():
     async with async_playwright() as p:
@@ -98,6 +99,9 @@ async def scrape_kcls_events():
 # Example usage
 if __name__ == "__main__":
     events = asyncio.run(scrape_kcls_events())
+    
+    """
+    # Preview result
     for event in events:
         print(f"Title: {event['title']}")
         if event['status']:
@@ -109,3 +113,29 @@ if __name__ == "__main__":
         print(f"Location: {event['location']}")
         print(f"Link: {event['link']}")
         print(f"Description: {event['description']}\n")
+    """
+
+    db = TinyDB('events.json')
+    Event = Query()
+
+    if events:
+        print(f"\n✅ Found {len(events)} events.")
+
+        for event in events:
+            # Check if event already exists based on title and date
+            if not db.contains((Event.title == event['title']) & (Event.date == event['date'])):
+                db.insert(event)
+            else:
+                continue  # Skip if event already exists
+    else:
+        print("⚠️ No valid events found.")
+
+    # Example query: upcoming free events
+    free_events = db.search(
+        (Event.cost.test(lambda c: 'free' == c.lower()))
+    )
+
+    print(f"✅ Found {len(free_events)} free events:")
+
+    for i, event in enumerate(free_events, 1):
+        print(f"{i}. {event['title']}")
