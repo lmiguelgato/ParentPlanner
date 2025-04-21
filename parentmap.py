@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from tinydb import TinyDB, Query
 from geo.geocode import geocode_address
+from weather.weather import get_weather_forecast
 
 def extract_metadata(raw_html, title, link):
     # Parse HTML for metadata extraction
@@ -162,4 +163,4 @@ free_events = db.search(
 print(f"✅ Found {len(free_events)} free events:")
 
 for i, event in enumerate(free_events, 1):
-    print(f"{i}. {event['title']}, {event['date']}, {event['location']} {geocode_address(event['location'])}")
+    print(f"{i}. {event['title']}, {event['date']}, {event['location']} {geocode_address(event['location'])} ({get_weather_forecast(geocode_address(event['location']))})")

@@ -3,6 +3,7 @@ from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from tinydb import TinyDB, Query
 from geo.geocode import geocode_address
+from weather.weather import get_weather_forecast
 
 async def scrape_kcls_events():
     async with async_playwright() as p:
@@ -139,4 +140,4 @@ if __name__ == "__main__":
     print(f"✅ Found {len(free_events)} free events:")
 
     for i, event in enumerate(free_events, 1):
-        print(f"{i}. {event['title']}, {event['date']}, {event['location']} {geocode_address(event['location'])}")
+        print(f"{i}. {event['title']}, {event['date']}, {event['location']} {geocode_address(event['location'])} ({get_weather_forecast(geocode_address(event['location']))})")
