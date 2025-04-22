@@ -80,5 +80,5 @@ def get_weather_forecast(lat_lon_tuple):
 
 
 # Example:
-forecast = get_weather_forecast((47.5705144, -122.149064))
-print(forecast)
+#forecast = get_weather_forecast((47.5705144, -122.149064))
+#print(forecast)
