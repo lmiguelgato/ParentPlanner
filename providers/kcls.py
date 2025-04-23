@@ -11,6 +11,7 @@ class KCLSEventProvider(EventProvider):
         super().__init__()
 
     def download_events(self):
+        logger.info("Downloading events from KCLS...")
         raw_events = asyncio.run(self.__scrape_upcoming_events())
         for event in raw_events:
             event = Event(

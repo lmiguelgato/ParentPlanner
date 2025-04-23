@@ -1,4 +1,5 @@
 import logging
+import concurrent.futures
 from providers.kcls import KCLSEventProvider
 from providers.parentmap import ParentMapEventProvider
 from geo.geocode import geocode_address
@@ -13,11 +14,17 @@ def main(logger):
     logger.info("Fetching events from providers")
 
     kcls = KCLSEventProvider()
-    kcls.download_events()
-
     parentmap = ParentMapEventProvider()
-    parentmap.download_events()
-
+    
+    # Run downloads concurrently using ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Submit both download tasks
+        kcls_future = executor.submit(kcls.download_events)
+        parentmap_future = executor.submit(parentmap.download_events)
+        
+        # Wait for both to complete
+        concurrent.futures.wait([kcls_future, parentmap_future])
+    
     provider_events = {
         "KCLS": kcls.events,
         "ParentMap": parentmap.events

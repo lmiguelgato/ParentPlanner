@@ -11,6 +11,7 @@ class ParentMapEventProvider(EventProvider):
         self.events = []
 
     def download_events(self):
+        logger.info("Downloading events from ParentMap...")
         self.events = self.__scrape_weekender_events()
         logger.info(f"{len(self.events)} events downloaded from ParentMap.")
 
