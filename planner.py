@@ -1,6 +1,7 @@
 import logging
 from providers.kcls import KCLSEventProvider
 from providers.parentmap import ParentMapEventProvider
+from geo.geocode import geocode_address
 
 logging.basicConfig(
     filename='planner.log',
@@ -30,7 +31,11 @@ def main(logger):
             print(f"Date: {event.date}")
             print(f"Time: {event.time}")
             print(f"Cost: {event.cost}")
-            print(f"Location: {event.location}")
+            if event.type != "Online":
+                complete_address, lat, lon = geocode_address(event.location)
+                print(f"Location: {event.location} ({complete_address if complete_address else 'Incomplete address'})")
+            else:
+                print(f"Location: Online")
             print(f"Link: {event.link}")
             print(f"Description: {event.description}\n")
 

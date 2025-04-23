@@ -22,7 +22,8 @@ class KCLSEventProvider(EventProvider):
                 time=event['time'],
                 cost=event['cost'],
                 location=event['location'],
-                description=event['description']
+                description=event['description'],
+                type=event['type']
             )
             self.events.append(event)
         
@@ -51,7 +52,7 @@ class KCLSEventProvider(EventProvider):
                 
                 # Extract status
                 status_badge = title_tag.find('span', class_='event-badge')
-                status = ''
+                status = 'Confirmed'  # Default status
                 if status_badge and status_badge.find('div', class_='cp-badge'):
                     status = status_badge.find('div', class_='cp-badge').get_text(strip=True)
                 
@@ -99,6 +100,12 @@ class KCLSEventProvider(EventProvider):
                 location_tag = event_div.find('a', attrs={'data-key': 'event-location-link'})
                 location = location_tag.find('span', attrs={'aria-hidden': 'true'}).get_text(strip=True) if location_tag else ''
                 
+                # Determine if event is online or onsite
+                event_type = 'Onsite'
+                online_div = event_div.find('div', class_='cp-event-location')
+                if online_div and online_div.find('span', string='Online event'):
+                    event_type = 'Online'
+                
                 # Extract description
                 desc_div = event_div.find('div', class_='cp-event-description')
                 description = ''
@@ -114,8 +121,9 @@ class KCLSEventProvider(EventProvider):
                     'date': date,
                     'time': time,
                     'cost': 'Free', # Assuming all KCLS events are free
-                    'location': f"{location} Library",
-                    'description': description
+                    'location': f"{location} Library" if event_type == 'Onsite' else 'Online',
+                    'description': description,
+                    'type': event_type
                 }
 
                 events.append(raw_event)

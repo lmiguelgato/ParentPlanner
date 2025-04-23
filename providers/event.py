@@ -1,5 +1,5 @@
 class Event:
-    def __init__(self, title, link, date, cost, location, description, status=None, time=None, provider=None):
+    def __init__(self, title, link, date, cost, location, description, status="Confirmed", time=None, provider=None, type="Onsite"):
         self.title = title
         self.link = link
         self.date = date
@@ -9,6 +9,7 @@ class Event:
         self.status = status
         self.time = time
         self.provider = provider
+        self.type = type
 
     def __repr__(self):
         return f"{self.provider} event: {self.title} on {self.date} at {self.location}"
