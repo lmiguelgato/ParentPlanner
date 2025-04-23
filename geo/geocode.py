@@ -59,10 +59,10 @@ def geocode_address(address):
     return None, None, None
 
 def enrich_with_context(address):
-    if "WA" not in address:
-        return address + ", WA, USA"
-    if "USA" not in address:
-        return address + ", USA"
+    if ("WA" not in address) and ("Washington" not in address):
+        return address + ", Washington, United States"
+    if ("USA" not in address) and ("United States" not in address):
+        return address + ", United States"
     return address
 
 def normalize_address(address):
