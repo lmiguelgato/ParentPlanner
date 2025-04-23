@@ -37,7 +37,10 @@ def main(logger):
             print(f"Date: {event.date}")
             print(f"Time: {event.time}")
             print(f"Cost: {event.cost}")
-            print(f"Location: {event.location} ({event.full_address if ((event.format != "Online") and event.full_address) else 'Incomplete address'})")
+            if event.format != "Online":
+                print(f"Location: {event.location} ({event.full_address if event.full_address else 'Incomplete address'})")
+            else:
+                print(f"Location: Online")
 
             if event.weather:
                 print(f"Weather: {event.weather['summary']}")

@@ -55,13 +55,30 @@ def geocode_address(address):
             return address, None, None
         else:
             return complete_address, float(data[0]['lat']), float(data[0]['lon'])
+    else:
+        # Try to get the location at least from the city name (the last 3 words of the address separated by commas)
+        address_parts = address.split(",")
+        if len(address_parts) >= 3:
+            city = address_parts[-3].strip()
+            state = address_parts[-2].strip()
+            country = address_parts[-1].strip()
+            params = {
+                'q': f"{city}, {state}, {country}",
+                'format': 'json',
+                'limit': 1
+            }
+            response = requests.get(url, params=params, headers=headers)
+            data = response.json()
+            if data:
+                complete_address = data[0].get('display_name', '')
+                return complete_address, float(data[0]['lat']), float(data[0]['lon'])
     
     return address, None, None
 
 def enrich_with_context(address):
-    if ("WA" not in address) and ("Washington" not in address):
+    if (" WA" not in address) and (", Washington" not in address):
         return address + ", Washington, United States"
-    if ("USA" not in address) and ("United States" not in address):
+    if (" USA" not in address) and (", United States" not in address):
         return address + ", United States"
     return address
 
