@@ -32,7 +32,7 @@ def is_valid_address(address):
 
 def geocode_address(address):
     if not is_valid_address(address):
-        return None, None, None
+        return address, None, None
 
     address = normalize_address(address)
     address = enrich_with_context(address)
@@ -52,11 +52,11 @@ def geocode_address(address):
         complete_address = data[0].get('display_name', '')
 
         if (", United States" not in complete_address) or (", Washington," not in complete_address) or (", District of Columbia" in complete_address):
-            return None, None, None
+            return address, None, None
         else:
             return complete_address, float(data[0]['lat']), float(data[0]['lon'])
     
-    return None, None, None
+    return address, None, None
 
 def enrich_with_context(address):
     if ("WA" not in address) and ("Washington" not in address):

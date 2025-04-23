@@ -24,7 +24,7 @@ class KCLSEventProvider(EventProvider):
                 cost=event['cost'],
                 location=event['location'],
                 description=event['description'],
-                type=event['type']
+                format=event['format']
             )
             self.events.append(event)
         
@@ -124,7 +124,7 @@ class KCLSEventProvider(EventProvider):
                     'cost': 'Free', # Assuming all KCLS events are free
                     'location': f"{location} Library" if event_type == 'Onsite' else 'Online',
                     'description': description,
-                    'type': event_type
+                    'format': event_type
                 }
 
                 events.append(raw_event)
