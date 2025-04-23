@@ -104,42 +104,43 @@ class ParentMapEventProvider(EventProvider):
         content_div = soup.find("div", class_="field_content_sections")
 
         if not content_div:
-            print("⚠️ Could not find content section.")
-        else:
-            print("✅ Content section found.")
+            logger.error("Unable to find the content section on the ParentMap webpage.")
+            return []
+        
+        logger.debug("Content section found.")
 
-            # Step 2: Extract all events (h3 + p combinations)
-            events = []
-            current_title = ""
-            current_link = None
+        # Step 2: Extract all events (h3 + p combinations)
+        events = []
+        current_title = ""
+        current_link = None
 
-            for elem in content_div.find_all(["h3", "p"], recursive=True):
-                if elem.name == "h3":
-                    # This is a new event title
-                    current_title = elem.get_text(strip=True)
-                    current_link = elem.find("a")["href"] if elem.find("a") else None
-                elif elem.name == "p" and current_title:
-                    # This is the event description paragraph
-                    # Instead of extracting text, store the raw HTML
-                    raw_html = str(elem)
-                    events.append({
-                        "title": current_title,
-                        "link": current_link,
-                        "raw_html": raw_html
-                    })
-                    current_title = ""
-                    current_link = None
-            
-            # Process each event's raw HTML to extract structured data
-            structured_events = [
-                self.__extract_metadata(event["raw_html"], event["title"], event["link"]) 
-                for event in events
-            ]
-            
-            # Filter out events with missing required fields
-            filtered_events = [
-                Event(**raw_event) for raw_event in structured_events
-                if raw_event["date"] and raw_event["cost"] and raw_event["location"]
-            ]
+        for elem in content_div.find_all(["h3", "p"], recursive=True):
+            if elem.name == "h3":
+                # This is a new event title
+                current_title = elem.get_text(strip=True)
+                current_link = elem.find("a")["href"] if elem.find("a") else None
+            elif elem.name == "p" and current_title:
+                # This is the event description paragraph
+                # Instead of extracting text, store the raw HTML
+                raw_html = str(elem)
+                events.append({
+                    "title": current_title,
+                    "link": current_link,
+                    "raw_html": raw_html
+                })
+                current_title = ""
+                current_link = None
+        
+        # Process each event's raw HTML to extract structured data
+        structured_events = [
+            self.__extract_metadata(event["raw_html"], event["title"], event["link"]) 
+            for event in events
+        ]
+        
+        # Filter out events with missing required fields
+        filtered_events = [
+            Event(**raw_event) for raw_event in structured_events
+            if raw_event["date"] and raw_event["cost"] and raw_event["location"]
+        ]
 
-            return filtered_events
+        return filtered_events

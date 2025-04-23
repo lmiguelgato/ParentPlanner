@@ -1,5 +1,8 @@
+import logging
 import requests
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 def get_weather_description(weather_code):
     weather_codes = {
@@ -39,7 +42,7 @@ def get_weather_description(weather_code):
 def get_weather_forecast(lat_lon_tuple):
     lat, lon = lat_lon_tuple
     if lat is None or lon is None:
-        print("⚠️ Cannot fetch weather without coordinates.")
+        logger.warning("Cannot fetch weather without coordinates.")
         return None
 
     tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -71,14 +74,9 @@ def get_weather_forecast(lat_lon_tuple):
             }
             return forecast
         else:
-            print("⚠️ Unexpected response structure:", data)
+            logger.error("Unexpected response structure from weather API.")
             return None
 
     except requests.exceptions.RequestException as e:
-        print(f"❌ Weather request failed: {e}")
+        logger.error(f"Weather API request failed: {e}")
         return None
-
-
-# Example:
-#forecast = get_weather_forecast((47.5705144, -122.149064))
-#print(forecast)

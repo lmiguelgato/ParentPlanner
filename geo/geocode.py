@@ -75,8 +75,3 @@ def normalize_address(address):
 
     address = address.replace("Ave.", "Ave").replace("St.", "St").replace("Blvd.", "Blvd")
     return address.strip()
-
-
-# Example:
-#lat, lon = geocode_address("Kirkland Urban, 425 Urban Plaza, Kirkland")
-#print(lat, lon)
