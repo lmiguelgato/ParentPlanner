@@ -1,5 +1,5 @@
-- Get weather at time/location of event
-- Suggest events based on weather conditions
+- Get weather at time/location of event (use LLM for unified date/time format, regardless of how it's expressed in natural language)
+- Suggest events based on weather conditions (use LLM for suggestions)
 
 
 Addresses like this should provide the correct geocode:
