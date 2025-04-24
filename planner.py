@@ -43,11 +43,7 @@ def main(logger):
                 print(f"Location: Online")
 
             if event.weather:
-                print(f"Weather: {event.weather['summary']}")
-                print(f"Max Temp: {event.weather['temp_max']}°C")
-                print(f"Min Temp: {event.weather['temp_min']}°C")
-                print(f"Precipitation: {event.weather['precipitation_mm']} mm")
-                print(f"Precipitation Probability: {event.weather['precipitation_probability_text']}")
+                print(f"Weather for {event.weather['datetime'].strftime('%Y-%m-%d %H:%M')}: {event.weather['summary']} (max temperature of {event.weather['temp_max']}°C, winds of {event.weather['max_wind_speed']} km/h, and {event.weather['precipitation_probability_text']})")
             else:
                 print("Weather data not available.")
             
