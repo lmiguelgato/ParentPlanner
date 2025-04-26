@@ -5,6 +5,7 @@ Features:
 - Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
 - Connect to Google/Apple calendar
+- Let the user filter by distance driving
 
 
 Bug fixes:
