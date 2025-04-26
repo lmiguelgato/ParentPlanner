@@ -1,10 +1,10 @@
+Features:
+- Whatsapp bot
 - Get weather at time/location of event (use LLM for unified date/time format, regardless of how it's expressed in natural language)
 - Suggest events based on weather conditions (use LLM for suggestions)
 - Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 
-Addresses like this should provide the correct geocode:
-- Bellevue Botanical Garden, 12001 Main St., Bellevue
-
-Fix:
+Bug fixes:
 - Event provider must have a method download_events that others inherit, not get_event
 - The KCLS events not always are located inside a Libary. Don't assume they are. Store all library names in a dictionnary?
+- Addresses like this should provide the correct geocode: "Bellevue Botanical Garden, 12001 Main St., Bellevue"
