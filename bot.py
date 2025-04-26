@@ -69,19 +69,51 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         all_events = db.all()
         
         if all_events:
-            # Format the event information for the user
-            event_text = "Here are some upcoming events:\n\n"
-            # Limit to 5 events to avoid message size limits
-            for event in all_events[:5]:
-                event_text += f"📌 *{event['title']}*\n"
-                event_text += f"📅 {event['date']} at {event['time']}\n"
-                event_text += f"📍 {event['location']}\n"
-                if 'suggestion' in event and event['suggestion'] != "TBD":
-                    event_text += f"💡 {event['suggestion']}\n"
-                event_text += "\n"
+            # Send a header message
+            await update.message.reply_text(f"Found {len(all_events)} events in total. Here are some upcoming events:")
             
-            event_text += f"\nFound {len(all_events)} events in total."
-            await update.message.reply_text(event_text, parse_mode="Markdown")
+            # Limit to 5 events to avoid flooding the chat
+            for event in all_events[:5]:
+                # Format each event as a separate message
+                event_text = ""
+                
+                # Title as clickable link with bold formatting
+                title_text = f"*{event['title']}*"
+                if 'link' in event and event['link']:
+                    title_text = f"[{title_text}]({event['link']})"
+                event_text += f"📌 {title_text}\n\n"
+                
+                # Date and time
+                if 'date' in event:
+                    event_text += f"📅 Date: {event['date']}\n"
+                if 'time' in event:
+                    event_text += f"🕒 Time: {event['time']}\n"
+                
+                # Status
+                if 'status' in event and event['status']:
+                    event_text += f"📊 Status: {event['status']}\n"
+                
+                # Cost
+                if 'cost' in event and event['cost']:
+                    event_text += f"💰 Cost: {event['cost']}\n"
+                
+                # Location
+                if 'location' in event and event['location']:
+                    event_text += f"📍 Location: {event['location']}\n"
+                
+                # Description with italic formatting
+                if 'description' in event and event['description']:
+                    # Truncate description if too long (Telegram messages have length limits)
+                    desc = event['description']
+                    if len(desc) > 200:
+                        desc = desc[:197] + "..."
+                    event_text += f"\n_{desc}_"
+                
+                # Send each event as a separate message with Markdown parsing
+                await update.message.reply_text(event_text, parse_mode="Markdown", disable_web_page_preview=False)
+                
+                # Add a small delay between messages to avoid rate limiting
+                await asyncio.sleep(0.5)
         else:
             await update.message.reply_text("No events found in the database.")
     else:
