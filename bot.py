@@ -39,15 +39,15 @@ def restricted(func):
         return await func(update, context, *args, **kwargs)
     return wrapped
 
-# Define the function for handling the /start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+# Define the function for handling the /restart command
+async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Welcome! I am your Telegram bot. Use /help to see available commands.")
 
 # Define the function for handling the /help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
         "I am a simple bot that can do the following:\n"
-        "/start - Start the bot\n"
+        "/restart - Restart the bot\n"
         "/help - Show this help text\n"
         "/events - Get event information\n"
         "/echo - Echo your next message"
@@ -149,20 +149,20 @@ async def main():
     
     # Define commands for the command menu
     commands = [
-        BotCommand("start", "Start the bot from scratch"),
-        BotCommand("help", "Show help information"),
+        BotCommand("restart", "Restart the bot from scratch"),
         BotCommand("events", "Get event information"),
-        BotCommand("echo", "Repeat the next message you send")
+        BotCommand("echo", "Repeat the next message you send"),
+        BotCommand("help", "Show help information"),
     ]
     
     # Set the commands to show in the command menu
     await app.bot.set_my_commands(commands)
 
     # Add handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("restart", restart))
     app.add_handler(CommandHandler("events", events))
     app.add_handler(CommandHandler("echo", echo))
+    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_echo))
 
     # Start the bot
