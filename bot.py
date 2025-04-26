@@ -41,26 +41,13 @@ def restricted(func):
 
 # Define the function for handling the /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Welcome! I am your Telegram bot. Use /menu to see available commands.")
-
-# Define the function for handling the /menu command
-async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    menu_text = (
-        "Here are the available commands:\n"
-        "/start - Start the bot from scratch\n"
-        "/menu - Show this menu\n"
-        "/help - Show help information\n"
-        "/events - Get events (currently just says 'Hello world!')\n"
-        "/echo - Repeat the next message you send"
-    )
-    await update.message.reply_text(menu_text)
+    await update.message.reply_text("Welcome! I am your Telegram bot. Use /help to see available commands.")
 
 # Define the function for handling the /help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
         "I am a simple bot that can do the following:\n"
         "/start - Start the bot\n"
-        "/menu - Show available commands\n"
         "/help - Show this help text\n"
         "/events - Get event information\n"
         "/echo - Echo your next message"
@@ -163,7 +150,6 @@ async def main():
     # Define commands for the command menu
     commands = [
         BotCommand("start", "Start the bot from scratch"),
-        BotCommand("menu", "Show available commands"),
         BotCommand("help", "Show help information"),
         BotCommand("events", "Get event information"),
         BotCommand("echo", "Repeat the next message you send")
@@ -174,7 +160,6 @@ async def main():
 
     # Add handlers
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("menu", menu))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("events", events))
     app.add_handler(CommandHandler("echo", echo))
