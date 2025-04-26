@@ -1,6 +1,6 @@
 - Get weather at time/location of event (use LLM for unified date/time format, regardless of how it's expressed in natural language)
 - Suggest events based on weather conditions (use LLM for suggestions)
-- Scrape the HTML behind the event link, especially for ParentMap, that has a standar section titled "EVENT DETAILS"
+- Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 
 Addresses like this should provide the correct geocode:
 - Bellevue Botanical Garden, 12001 Main St., Bellevue
