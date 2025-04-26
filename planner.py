@@ -9,7 +9,7 @@ import json
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv(".env.local")
+load_dotenv(".env")
 
 logging.basicConfig(
     filename='planner.log',
