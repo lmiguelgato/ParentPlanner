@@ -6,6 +6,8 @@ Features:
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
 - Connect to Google/Apple calendar
 - Let the user filter by distance driving
+- Schedule event notifications, no need to request for updates
+- Cache events that were showed already, per user
 
 
 Bug fixes:
