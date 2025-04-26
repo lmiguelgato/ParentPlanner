@@ -41,12 +41,12 @@ def restricted(func):
 
 # Define the function for handling the /restart command
 async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Welcome! I am your Telegram bot. Use /help to see available commands.")
+    await update.message.reply_text("Welcome! I am Parent Planner, an assistant that can help you find family events for the weekend. Use /help to see available commands.")
 
 # Define the function for handling the /help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
-        "I am a simple bot that can do the following:\n"
+        "I can do the following:\n"
         "/restart - Restart the bot\n"
         "/help - Show this help text\n"
         "/events - Get event information\n"
@@ -80,14 +80,14 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         
         if all_events:
             # Send a header message
-            await update.message.reply_text(f"Found {len(all_events)} events in total. Here are some upcoming events:")
+            await update.message.reply_text(f"Found {len(all_events)} upcoming events:")
             
-            # Limit to 5 events to avoid flooding the chat
+            # List events
             for event in all_events:
                 # Format each event as a separate message
                 event_text = ""
                 
-                # Title as clickable link with bold formatting
+                # Title as clickable link
                 title_text = f"{event['title']}"
                 if 'link' in event and event['link']:
                     title_text = f"[{title_text}]({event['link']})"
@@ -95,21 +95,21 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 
                 # Date and time
                 if 'date' in event:
-                    event_text += f"📅 Date: {event['date']}\n"
+                    event_text += f"📅 *Date:* {event['date']}\n"
                 if 'time' in event and event['time']:
-                    event_text += f"🕒 Time: {event['time']}\n"
+                    event_text += f"🕒 *Time:* {event['time']}\n"
                 
                 # Status
                 if 'status' in event and event['status'] and event['status'] != "Confirmed":
-                    event_text += f"📊 Status: {event['status']}\n"
+                    event_text += f"📊 *Status:* {event['status']}\n"
                 
                 # Cost
                 if 'cost' in event and event['cost']:
-                    event_text += f"💰 Cost: {event['cost']}\n"
+                    event_text += f"💰 *Cost:* {event['cost']}\n"
                 
                 # Location
                 if 'full_address' in event and event['full_address']:
-                    event_text += f"📍 Location: {event['full_address']}\n"
+                    event_text += f"📍 *Location:* {event['full_address']}\n"
                 
                 # Description with italic formatting
                 if 'description' in event and event['description']:
