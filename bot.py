@@ -2,8 +2,20 @@ import asyncio
 from telegram import Update, BotCommand
 from telegram.ext import CommandHandler, MessageHandler, filters, ContextTypes, ApplicationBuilder
 import os
+import logging
+from tinydb import TinyDB
+import importlib.util
+
+# Import main function from planner.py
+spec = importlib.util.spec_from_file_location("planner", "./planner.py")
+planner = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(planner)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# Set up logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Define the function for handling the /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -35,8 +47,45 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 # Define the function for handling the /events command
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Respond with "Hello world!" when the /events command is issued
-    await update.message.reply_text("Hello world!")
+    await update.message.reply_text("Fetching events... This might take a moment.")
+    
+    # Define a function to run planner.main in a separate thread
+    def run_planner():
+        try:
+            # Call planner.main with the logger
+            planner.main(logger)
+            return True
+        except Exception as e:
+            logger.error(f"Error running planner: {str(e)}")
+            return False
+    
+    # Run planner in a thread pool to avoid blocking
+    loop = asyncio.get_event_loop()
+    success = await loop.run_in_executor(None, run_planner)
+    
+    if success:
+        # After planner.main completes, fetch events from the database
+        db = TinyDB('data/events.json')
+        all_events = db.all()
+        
+        if all_events:
+            # Format the event information for the user
+            event_text = "Here are some upcoming events:\n\n"
+            # Limit to 5 events to avoid message size limits
+            for event in all_events[:5]:
+                event_text += f"📌 *{event['title']}*\n"
+                event_text += f"📅 {event['date']} at {event['time']}\n"
+                event_text += f"📍 {event['location']}\n"
+                if 'suggestion' in event and event['suggestion'] != "TBD":
+                    event_text += f"💡 {event['suggestion']}\n"
+                event_text += "\n"
+            
+            event_text += f"\nFound {len(all_events)} events in total."
+            await update.message.reply_text(event_text, parse_mode="Markdown")
+        else:
+            await update.message.reply_text("No events found in the database.")
+    else:
+        await update.message.reply_text("Sorry, there was an error fetching events. Please try again later.")
 
 # Define the function for handling the /echo command
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
