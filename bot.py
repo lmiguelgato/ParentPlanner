@@ -1,5 +1,5 @@
 import asyncio
-from telegram import Update
+from telegram import Update, BotCommand
 from telegram.ext import CommandHandler, MessageHandler, filters, ContextTypes, ApplicationBuilder
 import os
 
@@ -55,7 +55,20 @@ async def handle_echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 # Main function to set up the bot
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+    
+    # Define commands for the command menu
+    commands = [
+        BotCommand("start", "Start the bot from scratch"),
+        BotCommand("menu", "Show available commands"),
+        BotCommand("help", "Show help information"),
+        BotCommand("events", "Get event information"),
+        BotCommand("echo", "Repeat the next message you send")
+    ]
+    
+    # Set the commands to show in the command menu
+    await app.bot.set_my_commands(commands)
 
+    # Add handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(CommandHandler("help", help_command))
@@ -63,7 +76,7 @@ async def main():
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_echo))
 
-    # Start the bot without awaiting
+    # Start the bot
     await app.initialize()
     await app.start()
     await app.updater.start_polling()
