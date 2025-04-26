@@ -149,7 +149,7 @@ async def main():
     
     # Define commands for the command menu
     commands = [
-        BotCommand("restart", "Restart the bot from scratch"),
+        BotCommand("restart", "Restart the bot"),
         BotCommand("events", "Get event information"),
         BotCommand("echo", "Repeat the next message you send"),
         BotCommand("help", "Show help information"),
