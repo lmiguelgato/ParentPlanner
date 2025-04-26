@@ -1,10 +1,18 @@
 import asyncio
+import functools
 from telegram import Update, BotCommand
 from telegram.ext import CommandHandler, MessageHandler, filters, ContextTypes, ApplicationBuilder
 import os
 import logging
 from tinydb import TinyDB
 import importlib.util
+
+ADMIN_ID = os.getenv("ADMIN_ID")
+
+# List of authorized user IDs (replace with your actual IDs)
+AUTHORIZED_USERS = [
+    ADMIN_ID,
+]
 
 # Import main function from planner.py
 spec = importlib.util.spec_from_file_location("planner", "./planner.py")
@@ -16,6 +24,20 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Decorator function to check authorization
+def restricted(func):
+    @functools.wraps(func)
+    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        user_id = update.effective_user.id
+        if str(user_id) not in AUTHORIZED_USERS:
+            log_message = f"Unauthorized access attempt by user with ID: {user_id} and with username: {update.effective_user.username}"
+            print(log_message)
+            logger.warning(log_message)
+            await update.message.reply_text("Sorry, you are not authorized to use this bot.")
+            return
+        return await func(update, context, *args, **kwargs)
+    return wrapped
 
 # Define the function for handling the /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -46,6 +68,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(help_text)
 
 # Define the function for handling the /events command
+@restricted
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Fetching events... This might take a moment.")
     
