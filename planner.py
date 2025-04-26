@@ -11,11 +11,14 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv(".env")
 
+"""
+# Print logs to a file:
 logging.basicConfig(
     filename='planner.log',
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+"""
 
 # Configure litellm to use a free model
 # Using a free tier model like OpenAI's gpt-3.5-turbo via LiteLLM
