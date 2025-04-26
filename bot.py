@@ -159,6 +159,7 @@ async def main():
     await app.bot.set_my_commands(commands)
 
     # Add handlers
+    app.add_handler(CommandHandler("start", restart))
     app.add_handler(CommandHandler("restart", restart))
     app.add_handler(CommandHandler("events", events))
     app.add_handler(CommandHandler("echo", echo))
