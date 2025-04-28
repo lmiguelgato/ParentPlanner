@@ -1,6 +1,6 @@
 # ParentPlanner
 
-A Python-based web scraper that collects and organizes family-friendly events from multiple sources, including King County Library System (KCLS) and ParentMap.
+A Python-based web scraper and Telegram bot that collects and organizes family-friendly events in the Seattle/Washington area.
 
 ## Features
 
@@ -8,6 +8,7 @@ A Python-based web scraper that collects and organizes family-friendly events fr
 - Stores event data locally using TinyDB.
 - Avoids duplicate entries by checking existing events.
 - Provides easy querying for free events.
+- The bot interface provides easy and convenient access to the latest events in the area.
 
 ## Sources
 
@@ -21,3 +22,4 @@ A Python-based web scraper that collects and organizes family-friendly events fr
 - BeautifulSoup (for HTML parsing)
 - Requests (for HTTP requests)
 - TinyDB (for lightweight JSON-based storage)
+- Telegram bot Python SDK
