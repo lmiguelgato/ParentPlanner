@@ -100,5 +100,5 @@ class EventProvider:
     def __init__(self):
         self.events = []
 
-    def get_event(self):
+    def download_events(self):
         pass
