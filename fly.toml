@@ -27,6 +27,11 @@ primary_region = 'sea'
   port = 443
   handler = "app"
 
+  [[http_service.handlers]]
+  protocol = "http"
+  port = 80
+  handler = "redirect"
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
