@@ -6,8 +6,8 @@ Features:
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
 - Connect to Google/Apple calendar
 - Let the user filter by distance driving
-- Schedule event notifications, no need to request for updates
-- Cache events that were showed already, per user
+- Schedule event notifications, no need to request for updates.
+- Cache events that were showed already, per user. Use tinyDB, with the user ID as file name, and delete the file with a restart command. 
 
 
 Bug fixes:
