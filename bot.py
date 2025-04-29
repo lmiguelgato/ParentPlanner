@@ -6,6 +6,8 @@ import os
 import logging
 from tinydb import TinyDB
 import importlib.util
+from urllib.parse import quote
+import datetime
 
 ADMIN_ID = os.getenv("ADMIN_ID")
 
@@ -114,6 +116,81 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 # Weather
                 if 'weather' in event and event['weather']:
                     event_text += f"🌤️ *Weather:* {event['weather']['summary']}, with a max temperature of {event['weather']['temp_max']}°C, winds of up to {event['weather']['max_wind_speed']} km/h, and {event['weather']['precipitation_probability_text']}\n"
+                
+                # Add Google Calendar link
+                if 'date' in event:
+                    title = quote(event['title'])
+                    location = quote(event.get('full_address', ''))
+                    description = quote(event.get('description', ''))
+                    
+                    # Parse date for Google Calendar format (assumes date format like "Saturday, May 4")
+                    try:
+                        # Extract date info - this is basic and may need adjustment based on your date format
+                        date_parts = event['date'].replace(',', '').split()
+                        if len(date_parts) >= 2:
+                            month_name = date_parts[1]
+                            day = date_parts[2] if len(date_parts) > 2 else '1'
+                            # Convert month name to number
+                            month_num = {
+                                'January': 1, 'February': 2, 'March': 3, 'April': 4,
+                                'May': 5, 'June': 6, 'July': 7, 'August': 8,
+                                'September': 9, 'October': 10, 'November': 11, 'December': 12
+                            }.get(month_name, 1)
+                            
+                            # Use current year
+                            current_year = datetime.datetime.now().year
+                            
+                            # Format date for Google Calendar
+                            start_date = f"{current_year}{month_num:02d}{int(day):02d}"
+                            end_date = start_date
+                            
+                            # Add time if available
+                            time_info = ""
+                            if 'time' in event and event['time']:
+                                # This assumes time format is like "2:00 PM - 4:00 PM"
+                                time_parts = event['time'].split(' - ')[0].split(':')
+                                if len(time_parts) >= 2:
+                                    hour = int(time_parts[0])
+                                    minute = int(time_parts[1].split()[0])
+                                    is_pm = 'PM' in event['time'].split(' - ')[0].upper()
+                                    
+                                    # Convert to 24-hour format
+                                    if is_pm and hour < 12:
+                                        hour += 12
+                                    elif not is_pm and hour == 12:
+                                        hour = 0
+                                        
+                                    time_info = f"T{hour:02d}{minute:02d}00"
+                                    start_date += time_info
+                                    
+                                    # Try to get end time
+                                    if ' - ' in event['time']:
+                                        end_time = event['time'].split(' - ')[1]
+                                        end_time_parts = end_time.split(':')
+                                        if len(end_time_parts) >= 2:
+                                            end_hour = int(end_time_parts[0])
+                                            end_minute = int(end_time_parts[1].split()[0])
+                                            end_is_pm = 'PM' in end_time.upper()
+                                            
+                                            if end_is_pm and end_hour < 12:
+                                                end_hour += 12
+                                            elif not end_is_pm and end_hour == 12:
+                                                end_hour = 0
+                                                
+                                            end_time_info = f"T{end_hour:02d}{end_minute:02d}00"
+                                            end_date += end_time_info
+                                        else:
+                                            end_date += time_info
+                                    else:
+                                        # Default to 1 hour event
+                                        end_date += time_info
+                            
+                            # Create Google Calendar URL
+                            calendar_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={title}&dates={start_date}/{end_date}&details={description}&location={location}"
+                            
+                            event_text += f"\n📆 [Add to Google Calendar]({calendar_url})\n"
+                    except Exception as e:
+                        logger.error(f"Error creating calendar link: {str(e)}")
                 
                 # Description with italic formatting
                 if 'description' in event and event['description']:
