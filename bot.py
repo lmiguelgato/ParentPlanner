@@ -113,7 +113,7 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 
                 # Weather
                 if 'weather' in event and event['weather']:
-                    event_text += f"🌤️ *Weather:* {event['weather']}\n"
+                    event_text += f"🌤️ *Weather:* {event['weather']['summary']}, {event['weather']['summary']} (max temperature of {event['weather']['temp_max']}°C, winds of {event['weather']['max_wind_speed']} km/h, and {event['weather']['precipitation_probability_text']}\n"
                 
                 # Description with italic formatting
                 if 'description' in event and event['description']:
