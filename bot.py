@@ -111,6 +111,10 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 if 'full_address' in event and event['full_address']:
                     event_text += f"📍 *Location:* {event['full_address']}\n"
                 
+                # Weather
+                if 'weather' in event and event['weather']:
+                    event_text += f"🌤️ *Weather:* {event['weather']}\n"
+                
                 # Description with italic formatting
                 if 'description' in event and event['description']:
                     # Truncate description if too long (Telegram messages have length limits)
