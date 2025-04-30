@@ -36,9 +36,9 @@ planner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(planner)
 
 def get_user_db_path(user_id: int) -> str:
-    """Return the database path for a specific user."""
-    os.makedirs('data/users', exist_ok=True)  # Ensure directory exists
-    return f'data/users/{user_id}.json'
+    """Return the database path for a specific user's seen events."""
+    os.makedirs('data', exist_ok=True)  # Ensure directory exists
+    return f'data/{user_id}.json'
 
 # Decorator function to check authorization
 def restricted(func):
@@ -64,7 +64,7 @@ async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if os.path.exists(user_db_path):
         try:
             os.remove(user_db_path)
-            logger.info(f"Removed database for user {user_id}")
+            logger.info(f"Removed seen events database for user {user_id}")
         except Exception as e:
             logger.error(f"Error removing database for user {user_id}: {str(e)}")
     
@@ -286,17 +286,19 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 main_db = TinyDB(DATABASE_PATH)
                 all_events = main_db.all()
                 
-                # Get user's database to filter out already seen events
+                # Get user's seen events database
                 user_db_path = get_user_db_path(user_id)
                 user_db = TinyDB(user_db_path)
-                seen_event_ids = [event.get('id') for event in user_db.all() if 'id' in event]
                 
-                # Filter for new events
+                # Get list of event IDs already seen by this user
+                seen_event_ids = [item['event_id'] for item in user_db.all()]
+                
+                # Filter for events not yet seen by this user
                 new_events = [event for event in all_events if 'id' in event and event['id'] not in seen_event_ids]
                 
-                # Add new events to user's database
+                # Record these events as seen by adding just their IDs to the user's database
                 for event in new_events:
-                    user_db.insert(event)
+                    user_db.insert({'event_id': event['id']})
                 
                 return new_events
             except Exception as e:
