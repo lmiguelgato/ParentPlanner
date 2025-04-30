@@ -110,12 +110,12 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     event_text += f"💰 *Cost:* {event['cost']}\n"
                 
                 # Location
-                if 'full_address' in event and event['full_address']:
+                if 'is_estimated_address' in event and not bool(event['is_estimated_address']) and 'full_address' in event and event['full_address']:
                     event_text += f"📍 *Location:* {event['full_address']}\n"
                 
                 # Location
-                if 'location' in event and event['location']:
-                    event_text += f"📍 *Original Location:* {event['location']}\n"
+                if 'is_estimated_address' in event and bool(event['is_estimated_address']) and 'location' in event and event['location']:
+                    event_text += f"📍 *Location:* {event['location']}\n"
                 
                 # Weather
                 if 'weather' in event and event['weather']:

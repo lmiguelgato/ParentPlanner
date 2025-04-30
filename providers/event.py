@@ -17,7 +17,7 @@ class Event:
         self.time = time
         self.provider = provider
         self.format = format
-        self.full_address, self.lat, self.lon = self.get_full_address()
+        self.full_address, self.lat, self.lon, self.is_estimated_address = self.get_full_address()
         self.weather = self.weather_forecast()
 
     def __repr__(self):
@@ -25,9 +25,8 @@ class Event:
 
     def get_full_address(self):
         if self.format != "Online":
-            complete_address, lat, lon = geocode_address(self.location)
-            return complete_address, lat, lon
-        return None, None, None
+            return geocode_address(self.location)
+        return None, None, None, False
     
     def weather_forecast(self):
         if self.format != "Online":
