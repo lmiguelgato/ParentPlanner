@@ -20,7 +20,7 @@ from tinydb import TinyDB
 # Constants
 ADMIN_ID = os.getenv("ADMIN_ID")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-DATABASE_PATH = 'data/events.json'
+DATABASE_PATH = 'data/events.json'  # Main event storage
 DEFAULT_LOCATION = 'Washington state, United States'
 
 # List of authorized user IDs
@@ -34,6 +34,11 @@ logger = logging.getLogger(__name__)
 spec = importlib.util.spec_from_file_location("planner", "./planner.py")
 planner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(planner)
+
+def get_user_db_path(user_id: int) -> str:
+    """Return the database path for a specific user."""
+    os.makedirs('data/users', exist_ok=True)  # Ensure directory exists
+    return f'data/users/{user_id}.json'
 
 # Decorator function to check authorization
 def restricted(func):
@@ -50,7 +55,19 @@ def restricted(func):
     return wrapped
 
 # Command handlers
+@restricted
 async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    user_db_path = get_user_db_path(user_id)
+    
+    # Remove user's database if it exists
+    if os.path.exists(user_db_path):
+        try:
+            os.remove(user_db_path)
+            logger.info(f"Removed database for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error removing database for user {user_id}: {str(e)}")
+    
     await update.message.reply_text("Welcome! I am Parent Planner, an assistant that can help you find family events for the weekend. Use /help to see available commands.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -222,15 +239,29 @@ def format_event_message(event: Dict[str, Any]) -> str:
     
     return event_text
 
-async def fetch_events() -> List[Dict[str, Any]]:
-    """Fetch events from the database using the planner module."""
+async def fetch_events(user_id: int) -> List[Dict[str, Any]]:
+    """Fetch events from the database using the planner module, filtering out events already shown to the user."""
     try:
-        # Call planner.main with the logger
+        # Call planner.main with the logger to update the main database
         planner.main(logger)
         
-        # After planner.main completes, fetch events from the database
-        db = TinyDB(DATABASE_PATH)
-        return db.all()
+        # Get all events from main database
+        main_db = TinyDB(DATABASE_PATH)
+        all_events = main_db.all()
+        
+        # Get user's database to filter out already seen events
+        user_db_path = get_user_db_path(user_id)
+        user_db = TinyDB(user_db_path)
+        seen_event_ids = [event['id'] for event in user_db.all() if 'id' in event]
+        
+        # Filter for new events
+        new_events = [event for event in all_events if 'id' in event and event['id'] not in seen_event_ids]
+        
+        # Add new events to user's database
+        for event in new_events:
+            user_db.insert(event)
+        
+        return new_events
     except Exception as e:
         logger.error(f"Error fetching events: {str(e)}")
         return []
@@ -238,42 +269,56 @@ async def fetch_events() -> List[Dict[str, Any]]:
 # Main events command handler
 @restricted
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
     await update.message.reply_text("Fetching events... This might take a moment.")
     
     try:
         # Run planner in a thread pool to avoid blocking
-        # Using a lambda function that calls planner.main directly instead of calling fetch_events
         loop = asyncio.get_event_loop()
         
         # Define a synchronous function that we can run in the executor
-        def sync_fetch_events():
+        def sync_fetch_events(user_id):
             try:
-                # Call planner.main with the logger
+                # Call planner.main with the logger to update the main database
                 planner.main(logger)
                 
-                # After planner.main completes, fetch events from the database
-                db = TinyDB(DATABASE_PATH)
-                return db.all()
+                # Get all events from main database
+                main_db = TinyDB(DATABASE_PATH)
+                all_events = main_db.all()
+                
+                # Get user's database to filter out already seen events
+                user_db_path = get_user_db_path(user_id)
+                user_db = TinyDB(user_db_path)
+                seen_event_ids = [event.get('id') for event in user_db.all() if 'id' in event]
+                
+                # Filter for new events
+                new_events = [event for event in all_events if 'id' in event and event['id'] not in seen_event_ids]
+                
+                # Add new events to user's database
+                for event in new_events:
+                    user_db.insert(event)
+                
+                return new_events
             except Exception as e:
                 logger.error(f"Error fetching events: {str(e)}")
                 return []
         
         # Run the synchronous function in a thread pool
-        all_events = await loop.run_in_executor(None, sync_fetch_events)
+        new_events = await loop.run_in_executor(None, lambda: sync_fetch_events(user_id))
         
-        if all_events:
+        if new_events:
             # Send a header message
-            await update.message.reply_text(f"Found {len(all_events)} upcoming events:")
+            await update.message.reply_text(f"Found {len(new_events)} new events:")
             
             # Send each event as a separate message
-            for event in all_events:
+            for event in new_events:
                 event_text = format_event_message(event)
                 await update.message.reply_text(event_text, parse_mode="Markdown", disable_web_page_preview=False)
                 
                 # Add a small delay between messages to avoid rate limiting
                 await asyncio.sleep(0.5)
         else:
-            await update.message.reply_text("No events found. Please try again later.")
+            await update.message.reply_text("No new events found. Use /restart to reset your event history.")
     except Exception as e:
         logger.error(f"Error processing events command: {str(e)}")
         await update.message.reply_text("An error occurred while fetching events. Please try again later.")
