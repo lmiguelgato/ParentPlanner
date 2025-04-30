@@ -240,23 +240,43 @@ async def fetch_events() -> List[Dict[str, Any]]:
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Fetching events... This might take a moment.")
     
-    # Run planner in a thread pool to avoid blocking
-    loop = asyncio.get_event_loop()
-    all_events = await loop.run_in_executor(None, lambda: fetch_events())
-    
-    if all_events:
-        # Send a header message
-        await update.message.reply_text(f"Found {len(all_events)} upcoming events:")
+    try:
+        # Run planner in a thread pool to avoid blocking
+        # Using a lambda function that calls planner.main directly instead of calling fetch_events
+        loop = asyncio.get_event_loop()
         
-        # Send each event as a separate message
-        for event in all_events:
-            event_text = format_event_message(event)
-            await update.message.reply_text(event_text, parse_mode="Markdown", disable_web_page_preview=False)
+        # Define a synchronous function that we can run in the executor
+        def sync_fetch_events():
+            try:
+                # Call planner.main with the logger
+                planner.main(logger)
+                
+                # After planner.main completes, fetch events from the database
+                db = TinyDB(DATABASE_PATH)
+                return db.all()
+            except Exception as e:
+                logger.error(f"Error fetching events: {str(e)}")
+                return []
+        
+        # Run the synchronous function in a thread pool
+        all_events = await loop.run_in_executor(None, sync_fetch_events)
+        
+        if all_events:
+            # Send a header message
+            await update.message.reply_text(f"Found {len(all_events)} upcoming events:")
             
-            # Add a small delay between messages to avoid rate limiting
-            await asyncio.sleep(0.5)
-    else:
-        await update.message.reply_text("No events found. Please try again later.")
+            # Send each event as a separate message
+            for event in all_events:
+                event_text = format_event_message(event)
+                await update.message.reply_text(event_text, parse_mode="Markdown", disable_web_page_preview=False)
+                
+                # Add a small delay between messages to avoid rate limiting
+                await asyncio.sleep(0.5)
+        else:
+            await update.message.reply_text("No events found. Please try again later.")
+    except Exception as e:
+        logger.error(f"Error processing events command: {str(e)}")
+        await update.message.reply_text("An error occurred while fetching events. Please try again later.")
 
 # Main function to set up the bot
 async def main():
