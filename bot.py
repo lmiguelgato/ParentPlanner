@@ -59,21 +59,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 # Define the function for handling the /events command
 @restricted
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Fetching events... This might take a moment.")
-    
-    # Define a function to run planner.main in a separate thread
-    def run_planner():
-        try:
-            # Call planner.main with the logger
-            planner.main(logger)
-            return True
-        except Exception as e:
-            logger.error(f"Error running planner: {str(e)}")
-            return False
-    
-    # Run planner in a thread pool to avoid blocking
-    loop = asyncio.get_event_loop()
-    success = await loop.run_in_executor(None, run_planner)
+    # ...existing code...
     
     if success:
         # After planner.main completes, fetch events from the database
@@ -109,13 +95,17 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 if 'cost' in event and event['cost']:
                     event_text += f"💰 *Cost:* {event['cost']}\n"
                 
-                # Location
+                # Location with Google Maps link
                 if 'is_estimated_address' in event and not bool(event['is_estimated_address']) and 'full_address' in event and event['full_address']:
-                    event_text += f"📍 *Location:* {event['full_address']}\n"
+                    # Create Google Maps link with properly encoded location
+                    maps_url = f"https://maps.google.com/?daddr={quote(event['full_address'], safe='')}"
+                    event_text += f"📍 *Location:* [{event['full_address']}]({maps_url})\n"
                 
-                # Location
-                if 'is_estimated_address' in event and bool(event['is_estimated_address']) and 'location' in event and event['location']:
-                    event_text += f"📍 *Location:* {event['location']}\n"
+                # Location (estimated)
+                elif 'is_estimated_address' in event and bool(event['is_estimated_address']) and 'location' in event and event['location']:
+                    # Create Google Maps link with properly encoded location
+                    maps_url = f"https://maps.google.com/?daddr={quote(event['location'], safe='')}"
+                    event_text += f"📍 *Location:* [{event['location']}]({maps_url})\n"
                 
                 # Weather
                 if 'weather' in event and event['weather']:
