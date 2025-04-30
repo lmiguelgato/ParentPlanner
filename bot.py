@@ -59,7 +59,21 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 # Define the function for handling the /events command
 @restricted
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # ...existing code...
+    await update.message.reply_text("Fetching events... This might take a moment.")
+     
+    # Define a function to run planner.main in a separate thread
+    def run_planner():
+        try:
+            # Call planner.main with the logger
+            planner.main(logger)
+            return True
+        except Exception as e:
+            logger.error(f"Error running planner: {str(e)}")
+            return False
+     
+    # Run planner in a thread pool to avoid blocking
+    loop = asyncio.get_event_loop()
+    success = await loop.run_in_executor(None, run_planner)
     
     if success:
         # After planner.main completes, fetch events from the database
