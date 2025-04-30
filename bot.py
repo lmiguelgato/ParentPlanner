@@ -110,16 +110,15 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     event_text += f"💰 *Cost:* {event['cost']}\n"
                 
                 # Location with Google Maps link
+                location = 'Washington state, United States'
                 if 'is_estimated_address' in event and not bool(event['is_estimated_address']) and 'full_address' in event and event['full_address']:
-                    # Create Google Maps link with properly encoded location
-                    maps_url = f"https://maps.google.com/?daddr={quote(event['full_address'], safe='')}"
-                    event_text += f"📍 *Location:* [{event['full_address']}]({maps_url})\n"
-                
-                # Location (estimated)
+                    location = event['full_address']
                 elif 'is_estimated_address' in event and bool(event['is_estimated_address']) and 'location' in event and event['location']:
-                    # Create Google Maps link with properly encoded location
-                    maps_url = f"https://maps.google.com/?daddr={quote(event['location'], safe='')}"
-                    event_text += f"📍 *Location:* [{event['location']}]({maps_url})\n"
+                    location = event['location']  # Location (estimated)
+                
+                # Create Google Maps link with properly encoded location
+                maps_url = f"https://maps.google.com/?daddr={quote(location)}"
+                event_text += f"📍 *Location:* [{location}]({maps_url})\n"
                 
                 # Weather
                 if 'weather' in event and event['weather']:
@@ -128,7 +127,7 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 # Add Google Calendar link
                 if 'date' in event:
                     title = quote(event['title'])
-                    location = quote(event.get('full_address', ''))
+                    location_quoted = quote(location)
                     description = quote(event.get('description', ''))
                     
                     # Parse date for Google Calendar format (assumes date format like "Saturday, May 4")
@@ -194,7 +193,7 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                                         end_date += time_info
                             
                             # Create Google Calendar URL
-                            calendar_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={title}&dates={start_date}/{end_date}&details={description}&location={location}"
+                            calendar_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={title}&dates={start_date}/{end_date}&details={description}&location={location_quoted}"
                             
                             event_text += f"\n📆 [Add to Google Calendar]({calendar_url})\n"
                     except Exception as e:
