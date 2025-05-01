@@ -3,10 +3,8 @@ Features:
 - Suggest events based on weather conditions (use LLM for suggestions)
 - Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
-- Connect to Google/Apple calendar
-- Let the user filter by distance driving
-- Schedule event notifications, no need to request for updates.
-- Cache events that were showed already, per user. Use tinyDB, with the user ID as file name, and delete the file with a restart command. 
+- Schedule event fetches to update the main DB. Make queries to the main DB instead of scraping the web each time.
+- Send a notification to each user that has an unseen event.
 - Whatsapp bot
 
 
