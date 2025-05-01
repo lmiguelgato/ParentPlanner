@@ -239,8 +239,8 @@ def format_event_message(event: Dict[str, Any]) -> str:
     
     return event_text
 
+"""
 async def fetch_events(user_id: int) -> List[Dict[str, Any]]:
-    """Fetch events from the database using the planner module, filtering out events already shown to the user."""
     try:
         # Call planner.main with the logger to update the main database
         planner.main(logger)
@@ -248,14 +248,20 @@ async def fetch_events(user_id: int) -> List[Dict[str, Any]]:
         # Get all events from main database
         main_db = TinyDB(DATABASE_PATH)
         all_events = main_db.all()
+
+        logger.info(f"Fetched {len(all_events)} events from the main database.")
         
         # Get user's database to filter out already seen events
         user_db_path = get_user_db_path(user_id)
         user_db = TinyDB(user_db_path)
         seen_event_ids = [event['id'] for event in user_db.all() if 'id' in event]
+
+        logger.info(f"User {user_id} has seen event IDs: {seen_event_ids}")
         
         # Filter for new events
         new_events = [event for event in all_events if 'id' in event and event['id'] not in seen_event_ids]
+
+        logger.info(f"User {user_id} has new events: {new_events}")
         
         # Add new events to user's database
         for event in new_events:
@@ -265,6 +271,7 @@ async def fetch_events(user_id: int) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error fetching events: {str(e)}")
         return []
+"""
 
 # Main events command handler
 @restricted
@@ -285,20 +292,34 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 # Get all events from main database
                 main_db = TinyDB(DATABASE_PATH)
                 all_events = main_db.all()
+                logger.info(f"Fetched {len(all_events)} events from the main database.")
                 
                 # Get user's seen events database
                 user_db_path = get_user_db_path(user_id)
                 user_db = TinyDB(user_db_path)
                 
-                # Get list of event IDs already seen by this user
-                seen_event_ids = [item['event_id'] for item in user_db.all()]
+                # We need a way to uniquely identify events
+                # Since events may not have an 'id' field, we'll use a combination of fields
+                # that should uniquely identify an event
+                seen_event_fingerprints = set()
+                for record in user_db.all():
+                    if 'fingerprint' in record:
+                        seen_event_fingerprints.add(record['fingerprint'])
                 
-                # Filter for events not yet seen by this user
-                new_events = [event for event in all_events if 'id' in event and event['id'] not in seen_event_ids]
-                
-                # Record these events as seen by adding just their IDs to the user's database
-                for event in new_events:
-                    user_db.insert({'event_id': event['id']})
+                logger.info(f"User {user_id} has seen a total of {len(seen_event_fingerprints)} events.")
+
+                # Create a unique fingerprint for each event based on title + date
+                new_events = []
+                for event in all_events:
+                    # Create a unique fingerprint for each event
+                    # Using title + date as a simple unique identifier
+                    fingerprint = f"{event.get('title', '')}-{event.get('date', '')}"
+                    
+                    if fingerprint not in seen_event_fingerprints:
+                        new_events.append(event)
+                        # Store the fingerprint in the user's database
+                        user_db.insert({'fingerprint': fingerprint})
+                        logger.info(f"User {user_id} has a new event: {event['title']} on {event['date']}")
                 
                 return new_events
             except Exception as e:
