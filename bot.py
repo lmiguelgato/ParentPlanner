@@ -209,6 +209,8 @@ def restricted(func):
 # Command handlers
 @restricted
 async def force_fetch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("Force fetch command received.")
+
     user_id = update.effective_user.id
 
     if str(user_id) == ADMIN_ID:
@@ -251,6 +253,8 @@ async def force_fetch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 @restricted
 async def main_db_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("Main database reset command received.")
+
     user_id = update.effective_user.id
 
     if str(user_id) == ADMIN_ID:
@@ -268,6 +272,8 @@ async def main_db_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 @restricted
 async def user_db_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("User database reset command received.")
+    
     user_id = update.effective_user.id
 
     if str(user_id) == ADMIN_ID:
@@ -399,18 +405,18 @@ async def main():
     # Set the commands to show in the command menu
     await app.bot.set_my_commands(commands)
 
-    # Add handlers
+    # Admin commands
+    app.add_handler(CommandHandler("main_db_reset", main_db_reset))
+    app.add_handler(CommandHandler("user_db_reset", user_db_reset))
+    app.add_handler(CommandHandler("force_fetch", force_fetch))
+
+    # User commands
     app.add_handler(CommandHandler("start", restart))
     app.add_handler(CommandHandler("restart", restart))
     app.add_handler(CommandHandler("events", events))
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_echo))
-
-    # Admin commands
-    app.add_handler(CommandHandler("main_db_reset", main_db_reset))
-    app.add_handler(CommandHandler("user_db_reset", user_db_reset))
-    app.add_handler(CommandHandler("force_fetch", force_fetch))
 
     # Start the bot
     await app.initialize()
