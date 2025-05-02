@@ -2,10 +2,10 @@ import asyncio
 import functools
 import os
 import logging
-import datetime
-from urllib.parse import quote
 import importlib.util
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
+
+from .helpers.google import create_google_maps_link, create_google_calendar_link, get_event_location
 
 from telegram import Update, BotCommand
 from telegram.ext import (
@@ -21,7 +21,7 @@ from tinydb import TinyDB
 ADMIN_ID = os.getenv("ADMIN_ID")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_PATH = 'data/events.json'  # Main event storage
-DEFAULT_LOCATION = 'Washington state, United States'
+
 
 # List of authorized user IDs
 AUTHORIZED_USERS = [ADMIN_ID]
@@ -35,6 +35,57 @@ spec = importlib.util.spec_from_file_location("planner", "./planner.py")
 planner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(planner)
 
+# Helper functions for event processing
+def format_event_message(event: Dict[str, Any]) -> str:
+    """Format event data into a formatted message string."""
+    event_text = ""
+    
+    # Title as clickable link
+    title_text = f"{event['title']}"
+    if 'link' in event and event['link']:
+        title_text = f"[{title_text}]({event['link']})"
+    event_text += f"📌 {title_text}\n\n"
+    
+    # Date and time
+    if 'date' in event:
+        event_text += f"📅 *Date:* {event['date']}\n"
+    if 'time' in event and event['time']:
+        event_text += f"🕒 *Time:* {event['time']}\n"
+    
+    # Status
+    if 'status' in event and event['status'] and event['status'] != "Confirmed":
+        event_text += f"📊 *Status:* {event['status']}\n"
+    
+    # Cost
+    if 'cost' in event and event['cost']:
+        event_text += f"💰 *Cost:* {event['cost']}\n"
+    
+    # Location with Google Maps link
+    location = get_event_location(event)
+    maps_url = create_google_maps_link(location)
+    event_text += f"📍 *Location:* [{location}]({maps_url})\n"
+    
+    # Weather
+    if 'weather' in event and event['weather']:
+        weather = event['weather']
+        event_text += (f"🌤️ *Weather:* {weather['summary']}, with a max temperature of {weather['temp_max']}°C, "
+                       f"winds of up to {weather['max_wind_speed']} km/h, and {weather['precipitation_probability_text']}\n")
+    
+    # Add Google Calendar link
+    if 'date' in event:
+        calendar_url = create_google_calendar_link(event)
+        if calendar_url:
+            event_text += f"\n📆 [Add to Google Calendar]({calendar_url})\n"
+    
+    # Description with italic formatting
+    if 'description' in event and event['description']:
+        desc = event['description']
+        if len(desc) > 200:
+            desc = desc[:197] + "..."
+        event_text += f"\n_{desc}_"
+    
+    return event_text
+
 def get_user_db_path(user_id: int) -> str:
     """Return the database path for a specific user's seen events."""
     os.makedirs('data', exist_ok=True)  # Ensure directory exists
@@ -47,7 +98,6 @@ def restricted(func):
         user_id = update.effective_user.id
         if str(user_id) not in AUTHORIZED_USERS:
             log_message = f"Unauthorized access attempt by user with ID: {user_id} and with username: {update.effective_user.username}"
-            print(log_message)
             logger.warning(log_message)
             await update.message.reply_text("Sorry, you are not authorized to use this bot.")
             return
@@ -88,190 +138,6 @@ async def handle_echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if context.user_data.get('echo_mode', False):
         await update.message.reply_text(update.message.text)
         context.user_data['echo_mode'] = False
-
-# Helper functions for event processing
-def get_event_location(event: Dict[str, Any]) -> str:
-    """Extract the location from the event data."""
-    if 'is_estimated_address' in event and not bool(event['is_estimated_address']) and 'full_address' in event and event['full_address']:
-        return event['full_address']
-    elif 'is_estimated_address' in event and bool(event['is_estimated_address']) and 'location' in event and event['location']:
-        return event['location']
-    return DEFAULT_LOCATION
-
-def create_google_maps_link(location: str) -> str:
-    """Create a Google Maps link for the given location."""
-    return f"https://maps.google.com/?daddr={quote(location)}"
-
-def parse_event_date(event_date: str, event_time: Optional[str] = None) -> dict:
-    """Parse event date and time for calendar formatting."""
-    try:
-        date_parts = event_date.replace(',', '').split()
-        if len(date_parts) < 2:
-            return {}
-            
-        month_name = date_parts[1]
-        day = date_parts[2] if len(date_parts) > 2 else '1'
-        
-        # Convert month name to number
-        month_map = {
-            'January': 1, 'February': 2, 'March': 3, 'April': 4,
-            'May': 5, 'June': 6, 'July': 7, 'August': 8,
-            'September': 9, 'October': 10, 'November': 11, 'December': 12
-        }
-        month_num = month_map.get(month_name, 1)
-        
-        # Use current year
-        current_year = datetime.datetime.now().year
-        
-        # Format date
-        date_str = f"{current_year}{month_num:02d}{int(day):02d}"
-        
-        result = {
-            'start_date': date_str,
-            'end_date': date_str
-        }
-        
-        # Add time if available
-        if event_time:
-            time_parts = event_time.split(' - ')
-            start_time = parse_time(time_parts[0])
-            
-            if start_time:
-                result['start_date'] += start_time
-                
-                # Try to get end time
-                if len(time_parts) > 1:
-                    end_time = parse_time(time_parts[1])
-                    if end_time:
-                        result['end_date'] += end_time
-                    else:
-                        result['end_date'] += start_time  # Default to same as start time
-                else:
-                    result['end_date'] += start_time  # Default to same as start time
-        
-        return result
-    except Exception as e:
-        logger.error(f"Error parsing event date: {str(e)}")
-        return {}
-
-def parse_time(time_str: str) -> Optional[str]:
-    """Parse time string into Google Calendar format."""
-    try:
-        time_parts = time_str.split(':')
-        if len(time_parts) < 2:
-            return None
-            
-        hour = int(time_parts[0])
-        minute = int(time_parts[1].split()[0])
-        is_pm = 'PM' in time_str.upper()
-        
-        # Convert to 24-hour format
-        if is_pm and hour < 12:
-            hour += 12
-        elif not is_pm and hour == 12:
-            hour = 0
-            
-        return f"T{hour:02d}{minute:02d}00"
-    except Exception:
-        return None
-
-def create_calendar_link(event: Dict[str, Any]) -> str:
-    """Create a Google Calendar link for the event."""
-    title = quote(event['title'])
-    location = quote(get_event_location(event))
-    description = quote(event.get('description', ''))
-    
-    date_info = parse_event_date(event['date'], event.get('time', ''))
-    if not date_info:
-        return ""
-    
-    return (f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={title}"
-            f"&dates={date_info['start_date']}/{date_info['end_date']}"
-            f"&details={description}&location={location}")
-
-def format_event_message(event: Dict[str, Any]) -> str:
-    """Format event data into a formatted message string."""
-    event_text = ""
-    
-    # Title as clickable link
-    title_text = f"{event['title']}"
-    if 'link' in event and event['link']:
-        title_text = f"[{title_text}]({event['link']})"
-    event_text += f"📌 {title_text}\n\n"
-    
-    # Date and time
-    if 'date' in event:
-        event_text += f"📅 *Date:* {event['date']}\n"
-    if 'time' in event and event['time']:
-        event_text += f"🕒 *Time:* {event['time']}\n"
-    
-    # Status
-    if 'status' in event and event['status'] and event['status'] != "Confirmed":
-        event_text += f"📊 *Status:* {event['status']}\n"
-    
-    # Cost
-    if 'cost' in event and event['cost']:
-        event_text += f"💰 *Cost:* {event['cost']}\n"
-    
-    # Location with Google Maps link
-    location = get_event_location(event)
-    maps_url = create_google_maps_link(location)
-    event_text += f"📍 *Location:* [{location}]({maps_url})\n"
-    
-    # Weather
-    if 'weather' in event and event['weather']:
-        weather = event['weather']
-        event_text += (f"🌤️ *Weather:* {weather['summary']}, with a max temperature of {weather['temp_max']}°C, "
-                       f"winds of up to {weather['max_wind_speed']} km/h, and {weather['precipitation_probability_text']}\n")
-    
-    # Add Google Calendar link
-    if 'date' in event:
-        calendar_url = create_calendar_link(event)
-        if calendar_url:
-            event_text += f"\n📆 [Add to Google Calendar]({calendar_url})\n"
-    
-    # Description with italic formatting
-    if 'description' in event and event['description']:
-        desc = event['description']
-        if len(desc) > 200:
-            desc = desc[:197] + "..."
-        event_text += f"\n_{desc}_"
-    
-    return event_text
-
-"""
-async def fetch_events(user_id: int) -> List[Dict[str, Any]]:
-    try:
-        # Call planner.main with the logger to update the main database
-        planner.main(logger)
-        
-        # Get all events from main database
-        main_db = TinyDB(DATABASE_PATH)
-        all_events = main_db.all()
-
-        logger.info(f"Fetched {len(all_events)} events from the main database.")
-        
-        # Get user's database to filter out already seen events
-        user_db_path = get_user_db_path(user_id)
-        user_db = TinyDB(user_db_path)
-        seen_event_ids = [event['id'] for event in user_db.all() if 'id' in event]
-
-        logger.info(f"User {user_id} has seen event IDs: {seen_event_ids}")
-        
-        # Filter for new events
-        new_events = [event for event in all_events if 'id' in event and event['id'] not in seen_event_ids]
-
-        logger.info(f"User {user_id} has new events: {new_events}")
-        
-        # Add new events to user's database
-        for event in new_events:
-            user_db.insert(event)
-        
-        return new_events
-    except Exception as e:
-        logger.error(f"Error fetching events: {str(e)}")
-        return []
-"""
 
 # Main events command handler
 @restricted
