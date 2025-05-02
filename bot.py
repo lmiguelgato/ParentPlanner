@@ -3,7 +3,9 @@ import functools
 import os
 import logging
 import importlib.util
+import time
 from typing import Dict, Any
+from datetime import datetime
 
 from helpers.google import create_google_maps_link, create_google_calendar_link, get_event_location
 
@@ -34,6 +36,34 @@ logger = logging.getLogger(__name__)
 spec = importlib.util.spec_from_file_location("planner", "./planner.py")
 planner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(planner)
+
+# Global variable to track last update time
+last_update_time = 0
+UPDATE_INTERVAL = 60 * 60  # 1 hour in seconds
+
+async def scheduled_update(app):
+    """Background task that updates the event database every hour"""
+    global last_update_time
+    
+    while True:
+        current_time = time.time()
+        
+        # Check if an hour has passed since the last update
+        if current_time - last_update_time >= UPDATE_INTERVAL:
+            logger.info(f"Running scheduled update at {datetime.now()}")
+            try:
+                # Run planner in a thread pool to avoid blocking
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: planner.main(logger))
+                
+                # Update the last update time
+                last_update_time = current_time
+                logger.info(f"Scheduled update completed at {datetime.now()}")
+            except Exception as e:
+                logger.error(f"Error in scheduled update: {str(e)}")
+        
+        # Sleep for a minute before checking again
+        await asyncio.sleep(60)
 
 # Helper functions for event processing
 def format_event_message(event: Dict[str, Any]) -> str:
@@ -143,18 +173,12 @@ async def handle_echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 @restricted
 async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    await update.message.reply_text("Fetching events... This might take a moment.")
+    await update.message.reply_text("Fetching events...")
     
     try:
-        # Run planner in a thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        
         # Define a synchronous function that we can run in the executor
         def sync_fetch_events(user_id):
             try:
-                # Call planner.main with the logger to update the main database
-                planner.main(logger)
-                
                 # Get all events from main database
                 main_db = TinyDB(DATABASE_PATH)
                 all_events = main_db.all()
@@ -164,9 +188,7 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 user_db_path = get_user_db_path(user_id)
                 user_db = TinyDB(user_db_path)
                 
-                # We need a way to uniquely identify events
-                # Since events may not have an 'id' field, we'll use a combination of fields
-                # that should uniquely identify an event
+                # Get previously seen events
                 seen_event_fingerprints = set()
                 for record in user_db.all():
                     if 'fingerprint' in record:
@@ -174,18 +196,14 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 
                 logger.info(f"User {user_id} has seen a total of {len(seen_event_fingerprints)} events.")
 
-                # Create a unique fingerprint for each event based on title + date
+                # Filter out events the user has already seen
                 new_events = []
                 for event in all_events:
-                    # Create a unique fingerprint for each event
-                    # Using title + date as a simple unique identifier
                     fingerprint = f"{event.get('title', '')}-{event.get('date', '')}"
                     
                     if fingerprint not in seen_event_fingerprints:
                         new_events.append(event)
-                        # Store the fingerprint in the user's database
                         user_db.insert({'fingerprint': fingerprint})
-                        logger.info(f"User {user_id} has a new event: {event['title']} on {event['date']}")
                 
                 return new_events
             except Exception as e:
@@ -193,6 +211,7 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 return []
         
         # Run the synchronous function in a thread pool
+        loop = asyncio.get_event_loop()
         new_events = await loop.run_in_executor(None, lambda: sync_fetch_events(user_id))
         
         if new_events:
@@ -239,6 +258,22 @@ async def main():
     await app.initialize()
     await app.start()
     await app.updater.start_polling()
+    
+    # Start the background task for scheduled updates
+    global last_update_time
+    # Force an immediate first update
+    logger.info("Starting initial data fetch...")
+    loop = asyncio.get_event_loop()
+    try:
+        await loop.run_in_executor(None, lambda: planner.main(logger))
+        last_update_time = time.time()
+        logger.info("Initial data fetch completed")
+    except Exception as e:
+        logger.error(f"Error in initial update: {str(e)}")
+        last_update_time = 0  # Force retry on next check
+    
+    # Start the scheduled update task
+    asyncio.create_task(scheduled_update(app))
     
     try:
         # Keep the bot running until interrupted
