@@ -4,7 +4,8 @@ import os
 import logging
 import importlib.util
 import time
-from typing import Dict, Any
+import glob
+from typing import Dict, Any, List, Set
 from datetime import datetime
 
 from helpers.google import create_google_maps_link, create_google_calendar_link, get_event_location
@@ -42,7 +43,7 @@ last_update_time = 0
 UPDATE_INTERVAL = 60 * 60  # 1 hour in seconds
 
 async def scheduled_update(app):
-    """Background task that updates the event database every hour"""
+    """Background task that updates the event database every hour and notifies users of new events."""
     global last_update_time
     
     while True:
@@ -52,6 +53,15 @@ async def scheduled_update(app):
         if current_time - last_update_time >= UPDATE_INTERVAL:
             logger.info(f"Running scheduled update at {datetime.now()}")
             try:
+                # Get count of events before update
+                event_count_before = 0
+                try:
+                    if os.path.exists(DATABASE_PATH):
+                        main_db = TinyDB(DATABASE_PATH)
+                        event_count_before = len(main_db.all())
+                except Exception as e:
+                    logger.error(f"Error counting events before update: {str(e)}")
+                
                 # Run planner in a thread pool to avoid blocking
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, lambda: planner.main(logger))
@@ -59,11 +69,73 @@ async def scheduled_update(app):
                 # Update the last update time
                 last_update_time = current_time
                 logger.info(f"Scheduled update completed at {datetime.now()}")
+                
+                # Get count of events after update
+                event_count_after = 0
+                try:
+                    if os.path.exists(DATABASE_PATH):
+                        main_db = TinyDB(DATABASE_PATH)
+                        event_count_after = len(main_db.all())
+                except Exception as e:
+                    logger.error(f"Error counting events after update: {str(e)}")
+                
+                # If new events were added, notify users
+                new_event_count = event_count_after - event_count_before
+                if new_event_count > 0:
+                    logger.info(f"Found {new_event_count} new events, sending notifications to users")
+                    await notify_users_of_new_events(app, new_event_count)
+                
             except Exception as e:
                 logger.error(f"Error in scheduled update: {str(e)}")
         
         # Sleep for a minute before checking again
         await asyncio.sleep(60)
+
+async def notify_users_of_new_events(app, new_event_count: int):
+    """Send notification to all users that new events are available."""
+    user_ids = get_all_user_ids()
+    logger.info(f"Sending notifications to {len(user_ids)} users")
+    
+    # Prepare notification message
+    if new_event_count == 1:
+        message = "🔔 There is 1 new event available! Use /events to check it out."
+    else:
+        message = f"🔔 There are {new_event_count} new events available! Use /events to check them out."
+    
+    # Send notification to each user
+    for user_id in user_ids:
+        try:
+            # Convert string user ID to integer for Telegram API
+            int_user_id = int(user_id)
+            if str(int_user_id) in AUTHORIZED_USERS:
+                await app.bot.send_message(chat_id=int_user_id, text=message)
+                logger.info(f"Sent notification to user {user_id}")
+                # Add small delay to avoid hitting rate limits
+                await asyncio.sleep(0.1)
+        except Exception as e:
+            logger.error(f"Failed to send notification to user {user_id}: {str(e)}")
+
+# Function to get list of all user IDs from data directory
+def get_all_user_ids() -> List[str]:
+    """Get all user IDs by listing the JSON files in the data directory except events.json."""
+    user_ids = []
+    os.makedirs('data', exist_ok=True)  # Ensure directory exists
+    
+    # List all .json files in the data directory
+    json_files = glob.glob('data/*.json')
+    
+    for file_path in json_files:
+        # Extract just the filename without path or extension
+        filename = os.path.basename(file_path)
+        name_without_ext = os.path.splitext(filename)[0]
+        
+        # Skip the main events database
+        if name_without_ext != 'events':
+            # Only add IDs that are numeric (valid user IDs)
+            if name_without_ext.isdigit():
+                user_ids.append(name_without_ext)
+    
+    return user_ids
 
 # Helper functions for event processing
 def format_event_message(event: Dict[str, Any]) -> str:
