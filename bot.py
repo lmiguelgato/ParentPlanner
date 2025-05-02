@@ -27,7 +27,7 @@ DATABASE_PATH = 'data/events.json'  # Main event storage
 
 
 # List of authorized user IDs
-AUTHORIZED_USERS = [ADMIN_ID]
+AUTHORIZED_USERS = [ADMIN_ID, "483566899"]
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
