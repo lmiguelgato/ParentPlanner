@@ -208,6 +208,45 @@ def restricted(func):
 
 # Command handlers
 @restricted
+async def main_db_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+
+    if str(user_id) == ADMIN_ID:
+        # Remove the main database file if it exists
+        if os.path.exists(DATABASE_PATH):
+            try:
+                os.remove(DATABASE_PATH)
+                await update.message.reply_text("Main database reset successfully.")
+                logger.info(f"Main database reset by admin {user_id}.")
+            except Exception as e:
+                await update.message.reply_text("Error resetting main database.")
+                logger.error(f"Error resetting main database: {str(e)}")
+        else:
+            await update.message.reply_text("Main database does not exist.")
+
+@restricted
+async def user_db_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+
+    if str(user_id) == ADMIN_ID:
+        # Remove all user databases
+        user_files = glob.glob('data/*.json')
+        for file_path in user_files:
+            filename = os.path.basename(file_path)
+            name_without_ext = os.path.splitext(filename)[0]
+            
+            # Skip the main events database
+            if name_without_ext != 'events':
+                try:
+                    os.remove(file_path)
+                    await update.message.reply_text(f"Removed user database for user {name_without_ext}.")
+                    logger.info(f"Removed user database for user {name_without_ext}.")
+                except Exception as e:
+                    await update.message.reply_text(f"Error removing user database for {name_without_ext}.")
+                    logger.error(f"Error removing user database for {name_without_ext}: {str(e)}")
+        await update.message.reply_text("All user databases reset successfully.")
+
+@restricted
 async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     user_db_path = get_user_db_path(user_id)
@@ -321,6 +360,8 @@ async def main():
     # Add handlers
     app.add_handler(CommandHandler("start", restart))
     app.add_handler(CommandHandler("restart", restart))
+    app.add_handler(CommandHandler("main_db_reset", main_db_reset))
+    app.add_handler(CommandHandler("user_db_reset", user_db_reset))
     app.add_handler(CommandHandler("events", events))
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(CommandHandler("help", help_command))
