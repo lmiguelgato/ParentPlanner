@@ -40,7 +40,7 @@ spec.loader.exec_module(planner)
 
 # Global variable to track last update time
 last_update_time = 0
-UPDATE_INTERVAL = 60 * 60  # 1 hour in seconds
+UPDATE_INTERVAL = 60 * 60 * 24  # 24 hours in seconds
 
 async def scheduled_update(app):
     """Background task that updates the event database every hour and notifies users of new events."""
@@ -208,6 +208,48 @@ def restricted(func):
 
 # Command handlers
 @restricted
+async def force_fetch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+
+    if str(user_id) == ADMIN_ID:
+        try:
+            # Get count of events before update
+            event_count_before = 0
+            try:
+                if os.path.exists(DATABASE_PATH):
+                    main_db = TinyDB(DATABASE_PATH)
+                    event_count_before = len(main_db.all())
+            except Exception as e:
+                logger.error(f"Error counting events before update: {str(e)}")
+            
+            # Run planner in a thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, lambda: planner.main(logger))
+            
+            # Get count of events after update
+            event_count_after = 0
+            try:
+                if os.path.exists(DATABASE_PATH):
+                    main_db = TinyDB(DATABASE_PATH)
+                    event_count_after = len(main_db.all())
+            except Exception as e:
+                logger.error(f"Error counting events after update: {str(e)}")
+            
+            # If new events were added, notify users
+            new_event_count = event_count_after - event_count_before
+            if new_event_count > 0:
+                logger.info(f"Found {new_event_count} new events, sending notifications to users")
+                # Use the application from context instead of app
+                await notify_users_of_new_events(context.application, new_event_count)
+                await update.message.reply_text(f"Force fetch completed. Found {new_event_count} new events.")
+            else:
+                await update.message.reply_text("Force fetch completed. No new events found.")
+            
+        except Exception as e:
+            logger.error(f"Error in force fetch: {str(e)}")
+            await update.message.reply_text("An error occurred during force fetch.")
+
+@restricted
 async def main_db_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
 
@@ -360,12 +402,15 @@ async def main():
     # Add handlers
     app.add_handler(CommandHandler("start", restart))
     app.add_handler(CommandHandler("restart", restart))
-    app.add_handler(CommandHandler("main_db_reset", main_db_reset))
-    app.add_handler(CommandHandler("user_db_reset", user_db_reset))
     app.add_handler(CommandHandler("events", events))
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_echo))
+
+    # Admin commands
+    app.add_handler(CommandHandler("main_db_reset", main_db_reset))
+    app.add_handler(CommandHandler("user_db_reset", user_db_reset))
+    app.add_handler(CommandHandler("force_fetch", force_fetch))
 
     # Start the bot
     await app.initialize()
