@@ -81,7 +81,7 @@ def store_events_in_db(provider_name, events, logger):
     
     for event in events:
         # Generate suggestion for the event
-        logger.info(f"Generating suggestion for event: {event.title}")
+        #logger.info(f"Generating suggestion for event: {event.title}")
         suggestion = "TBD" #generate_event_suggestion(event, logger)
         
         # Convert event to dictionary for storage

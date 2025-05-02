@@ -32,19 +32,30 @@ class KCLSEventProvider(EventProvider):
 
     async def __scrape_upcoming_events(self):
         async with async_playwright() as p:
+            logger.info("Launching browser...")
             browser = await p.chromium.launch(headless=True)
+            logger.info("Opening new page...")
             page = await browser.new_page()
             # Spanish/English events for kids 8 and under:
+            logger.info("Checking for Spanish/English events for kids 8 and under...")
             await page.goto('https://kcls.bibliocommons.com/v2/events?audiences=572b6201717c23254b000013%2C572b6201717c23254b000014%2C572b6201717c23254b000012&languages=5654e8049967fa8d27000012%2C5654e8049967fa8d27000014', wait_until='networkidle')
             await page.wait_for_load_state('networkidle')
 
+            logger.info("Waiting for page to load...")
             content = await page.content()
+            logger.info("Page loaded. Parsing content...")
             soup = BeautifulSoup(content, 'html.parser')
 
             events = []
 
             # Target div elements with class 'event-details'
             event_divs = soup.find_all('div', class_='event-details')
+            if not event_divs:
+                logger.warning("No event divs found. Check the page structure.")
+                await browser.close()
+                return []
+            
+            logger.info(f"Found {len(event_divs)} event divs.")
 
             for event_div in event_divs:
                 # Extract title
@@ -128,6 +139,11 @@ class KCLSEventProvider(EventProvider):
                 }
 
                 events.append(raw_event)
+                logger.info(f"Event found: {title} - {date} - {time} - {location}")
 
+            logger.info(f"Total events found: {len(events)}")
+            # Close the browser
+            logger.info("Closing browser...")
             await browser.close()
+            logger.info("Browser closed.")
             return events

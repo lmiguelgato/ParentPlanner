@@ -107,7 +107,7 @@ class ParentMapEventProvider(EventProvider):
             logger.error("Unable to find the content section on the ParentMap webpage.")
             return []
         
-        logger.debug("Content section found.")
+        logger.info("Content section found.")
 
         # Step 2: Extract all events (h3 + p combinations)
         events = []
@@ -128,6 +128,10 @@ class ParentMapEventProvider(EventProvider):
                     "link": current_link,
                     "raw_html": raw_html
                 })
+
+                logger.info(f"Event found: {current_title}")
+
+                # Reset for the next event
                 current_title = ""
                 current_link = None
         

@@ -5,7 +5,7 @@ import logging
 import importlib.util
 from typing import Dict, Any
 
-from .helpers.google import create_google_maps_link, create_google_calendar_link, get_event_location
+from helpers.google import create_google_maps_link, create_google_calendar_link, get_event_location
 
 from telegram import Update, BotCommand
 from telegram.ext import (
