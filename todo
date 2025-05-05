@@ -3,8 +3,6 @@ Features:
 - Suggest events based on weather conditions (use LLM for suggestions)
 - Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
-- Schedule event fetches to update the main DB. Make queries to the main DB instead of scraping the web each time.
-- Send a notification to each user that has an unseen event.
 - Whatsapp bot
 
 
