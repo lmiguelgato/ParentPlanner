@@ -3,7 +3,7 @@ Features:
 - Suggest events based on weather conditions (use LLM for suggestions)
 - Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
-- Whatsapp bot
+- Get events from: https://everout.com/seattle/events/
 
 
 Bug fixes:
