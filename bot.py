@@ -24,10 +24,11 @@ from tinydb import TinyDB
 ADMIN_ID = os.getenv("ADMIN_ID")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_PATH = 'data/events.json'  # Main event storage
+AUTHORIZED_USERS_DB = 'data/authorized_users.json'
 
 
 # List of authorized user IDs
-AUTHORIZED_USERS = [ADMIN_ID, "483566899"]
+AUTHORIZED_USERS = [ADMIN_ID]
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -41,6 +42,55 @@ spec.loader.exec_module(planner)
 # Global variable to track last update time
 last_update_time = 0
 UPDATE_INTERVAL = 60 * 60 * 24  # 24 hours in seconds
+
+def load_authorized_users():
+    """Load authorized users from the database and append to AUTHORIZED_USERS."""
+    os.makedirs('data', exist_ok=True)
+    db = TinyDB(AUTHORIZED_USERS_DB)
+    user_ids = [str(u['user_id']) for u in db.all() if 'user_id' in u]
+    # Avoid duplicates
+    for uid in user_ids:
+        if uid not in AUTHORIZED_USERS:
+            AUTHORIZED_USERS.append(uid)
+
+def add_authorized_user(user_id: str):
+    db = TinyDB(AUTHORIZED_USERS_DB)
+    if not db.contains({'user_id': user_id}):
+        db.insert({'user_id': user_id})
+
+def remove_authorized_user(user_id: str):
+    db = TinyDB(AUTHORIZED_USERS_DB)
+    db.remove(lambda u: u.get('user_id') == user_id)
+
+@restricted
+async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if str(user_id) != ADMIN_ID:
+        await update.message.reply_text("Only the admin can add users.")
+        return
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /add_user <user_id>")
+        return
+    new_user_id = context.args[0]
+    add_authorized_user(new_user_id)
+    if new_user_id not in AUTHORIZED_USERS:
+        AUTHORIZED_USERS.append(new_user_id)
+    await update.message.reply_text(f"User {new_user_id} added to authorized users.")
+
+@restricted
+async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if str(user_id) != ADMIN_ID:
+        await update.message.reply_text("Only the admin can remove users.")
+        return
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /remove_user <user_id>")
+        return
+    remove_id = context.args[0]
+    remove_authorized_user(remove_id)
+    if remove_id in AUTHORIZED_USERS:
+        AUTHORIZED_USERS.remove(remove_id)
+    await update.message.reply_text(f"User {remove_id} removed from authorized users.")
 
 async def scheduled_update(app):
     """Background task that updates the event database every hour and notifies users of new events."""
@@ -392,6 +442,9 @@ async def events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # Main function to set up the bot
 async def main():
+    # Load authorized users from DB before starting the bot
+    load_authorized_users()
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     
     # Define commands for the command menu
@@ -409,6 +462,8 @@ async def main():
     app.add_handler(CommandHandler("main_db_reset", main_db_reset))
     app.add_handler(CommandHandler("user_db_reset", user_db_reset))
     app.add_handler(CommandHandler("force_fetch", force_fetch))
+    app.add_handler(CommandHandler("add_user", add_user))
+    app.add_handler(CommandHandler("remove_user", remove_user))
 
     # User commands
     app.add_handler(CommandHandler("start", restart))
