@@ -258,6 +258,20 @@ async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await update.message.reply_text(f"User {remove_id} removed from authorized users.")
 
 @restricted
+async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if str(user_id) != ADMIN_ID:
+        await update.message.reply_text("Only the admin can list authorized users.")
+        return
+    db = TinyDB(AUTHORIZED_USERS_DB)
+    users = [str(u['user_id']) for u in db.all() if 'user_id' in u]
+    if not users:
+        await update.message.reply_text("No authorized users found.")
+    else:
+        users_text = "\n".join(users)
+        await update.message.reply_text(f"Authorized users:\n{users_text}")
+
+@restricted
 async def force_fetch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Force fetch command received.")
 
@@ -464,6 +478,7 @@ async def main():
     app.add_handler(CommandHandler("force_fetch", force_fetch))
     app.add_handler(CommandHandler("add_user", add_user))
     app.add_handler(CommandHandler("remove_user", remove_user))
+    app.add_handler(CommandHandler("list_users", list_users))
 
     # User commands
     app.add_handler(CommandHandler("start", restart))
