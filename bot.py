@@ -62,36 +62,6 @@ def remove_authorized_user(user_id: str):
     db = TinyDB(AUTHORIZED_USERS_DB)
     db.remove(lambda u: u.get('user_id') == user_id)
 
-@restricted
-async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = update.effective_user.id
-    if str(user_id) != ADMIN_ID:
-        await update.message.reply_text("Only the admin can add users.")
-        return
-    if not context.args or not context.args[0].isdigit():
-        await update.message.reply_text("Usage: /add_user <user_id>")
-        return
-    new_user_id = context.args[0]
-    add_authorized_user(new_user_id)
-    if new_user_id not in AUTHORIZED_USERS:
-        AUTHORIZED_USERS.append(new_user_id)
-    await update.message.reply_text(f"User {new_user_id} added to authorized users.")
-
-@restricted
-async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = update.effective_user.id
-    if str(user_id) != ADMIN_ID:
-        await update.message.reply_text("Only the admin can remove users.")
-        return
-    if not context.args or not context.args[0].isdigit():
-        await update.message.reply_text("Usage: /remove_user <user_id>")
-        return
-    remove_id = context.args[0]
-    remove_authorized_user(remove_id)
-    if remove_id in AUTHORIZED_USERS:
-        AUTHORIZED_USERS.remove(remove_id)
-    await update.message.reply_text(f"User {remove_id} removed from authorized users.")
-
 async def scheduled_update(app):
     """Background task that updates the event database every hour and notifies users of new events."""
     global last_update_time
@@ -257,6 +227,36 @@ def restricted(func):
     return wrapped
 
 # Command handlers
+@restricted
+async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if str(user_id) != ADMIN_ID:
+        await update.message.reply_text("Only the admin can add users.")
+        return
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /add_user <user_id>")
+        return
+    new_user_id = context.args[0]
+    add_authorized_user(new_user_id)
+    if new_user_id not in AUTHORIZED_USERS:
+        AUTHORIZED_USERS.append(new_user_id)
+    await update.message.reply_text(f"User {new_user_id} added to authorized users.")
+
+@restricted
+async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if str(user_id) != ADMIN_ID:
+        await update.message.reply_text("Only the admin can remove users.")
+        return
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /remove_user <user_id>")
+        return
+    remove_id = context.args[0]
+    remove_authorized_user(remove_id)
+    if remove_id in AUTHORIZED_USERS:
+        AUTHORIZED_USERS.remove(remove_id)
+    await update.message.reply_text(f"User {remove_id} removed from authorized users.")
+
 @restricted
 async def force_fetch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Force fetch command received.")
