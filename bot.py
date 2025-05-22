@@ -252,10 +252,15 @@ async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("Usage: /remove_user <user_id>")
         return
     remove_id = context.args[0]
-    remove_authorized_user(remove_id)
-    if remove_id in AUTHORIZED_USERS:
-        AUTHORIZED_USERS.remove(remove_id)
-    await update.message.reply_text(f"User {remove_id} removed from authorized users.")
+    db = TinyDB(AUTHORIZED_USERS_DB)
+    user_exists = db.contains({'user_id': remove_id})
+    if user_exists:
+        remove_authorized_user(remove_id)
+        if remove_id in AUTHORIZED_USERS:
+            AUTHORIZED_USERS.remove(remove_id)
+        await update.message.reply_text(f"User {remove_id} removed from authorized users.")
+    else:
+        await update.message.reply_text(f"User {remove_id} was not an authorized user.")
 
 @restricted
 async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
