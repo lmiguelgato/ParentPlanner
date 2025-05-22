@@ -11,15 +11,6 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv(".env")
 
-"""
-# Print logs to a file:
-logging.basicConfig(
-    filename='planner.log',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-"""
-
 # Configure litellm to use a free model
 # Using a free tier model like OpenAI's gpt-3.5-turbo via LiteLLM
 litellm.set_verbose = False
@@ -82,7 +73,7 @@ def store_events_in_db(provider_name, events, logger):
     for event in events:
         # Generate suggestion for the event
         #logger.info(f"Generating suggestion for event: {event.title}")
-        suggestion = "TBD" #generate_event_suggestion(event, logger)
+        suggestion = "TODO" #generate_event_suggestion(event, logger)
         
         # Convert event to dictionary for storage
         event_dict = event.__dict__.copy()
