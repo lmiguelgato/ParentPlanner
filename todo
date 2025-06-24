@@ -4,6 +4,7 @@ Features:
 - Scrape the HTML behind the event link, especially for ParentMap, that has a standard section titled "EVENT DETAILS"
 - Tag events with # using LLM, so that they can be easily filtered in Telegram
 - Get events from: https://everout.com/seattle/events/
+- Get events from: https://www.seattleschild.com/free-kid-friendly-events-this-weekend1/
 - Leverage RSS when possible
 
 
